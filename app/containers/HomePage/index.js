@@ -35,30 +35,43 @@ import { makeSelectUsername } from './selectors';
 import reducer from './reducer';
 import saga from './saga';
 
-const getWordPerHour = (content, inputValue, timer) => {
-  const pureString = content && content.replace(/(<([^>]+)>)/gi, '');
-  let correctWordCount = 0;
-  for (let i = 0; i < inputValue.length; i += 1) {
-    if (inputValue.charAt(i) === pureString.charAt(i)) {
-      correctWordCount += 1;
-    }
-  }
-  const diff = Math.round((new Date().getTime() - timer) / 1000);
-  const timeSpent = Math.floor(diff);
-  return inputValue ? correctWordCount / timeSpent : 0;
-};
 /* eslint-disable react/prefer-stateless-function */
 export class HomePage extends React.PureComponent {
   /**
    * when initial state username is not null, submit the form to load repos
    */
+  constructor(props) {
+    super(props);
+    this.state = {
+      wpm: 0,
+    };
+  }
+
   componentDidMount() {
     this.props.loadParagraph();
   }
 
+  getWordPerMinute = (content, inputValue, timer) => {
+    const pureString = content && content.replace(/(<([^>]+)>)/gi, '');
+    let correctWordCount = 0;
+    for (let i = 0; i < inputValue.length; i += 1) {
+      if (inputValue.charAt(i) === pureString.charAt(i)) {
+        correctWordCount += 1;
+      }
+    }
+    const diff = Math.round((new Date().getTime() - timer) / 1000);
+    const spentMinutes = Math.floor(diff / 60);
+    this.setState({
+      wpm: inputValue ? correctWordCount / spentMinutes : 0,
+    });
+  };
+
   render() {
     const { inputValue, paragraph, timer } = this.props;
-    const wpa = getWordPerHour(paragraph, inputValue, timer);
+    const diff = Math.round((new Date().getTime() - timer) / 1000);
+    if ((diff / 60) % 60 === 0) {
+      this.getWordPerMinute(paragraph, inputValue, timer);
+    }
     return (
       <article>
         <Helmet>
@@ -67,7 +80,7 @@ export class HomePage extends React.PureComponent {
         <div>
           <Header />
           <Section>
-            <div> WPA : {wpa} </div>
+            <div> WPM : {this.state.wpm} </div>
             <Paragraph {...this.props} />
             <Input
               id="input"
